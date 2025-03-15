@@ -29,6 +29,44 @@ void ABaseballGameState::BeginPlay()
 	Super::BeginPlay();
 }
 
+void ABaseballGameState::InitGame()
+{
+	RequestDeactivateAllSubmitButton();
+
+	GetWorldTimerManager().SetTimer(
+		GameStartTimer,
+		this,
+		&ABaseballGameState::GameStart,
+		5.0f,
+		false
+	);
+}
+
+void ABaseballGameState::GameStart()
+{
+	GetWorldTimerManager().ClearTimer(GameStartTimer);
+
+	UE_LOG(LogTemp, Warning, TEXT("[GameStart] 게임 실행"));
+
+	GetWorldTimerManager().SetTimer(
+		SubmittionTurnTimer,
+		this,
+		&ABaseballGameState::RequestActivateAllSubmitButton,
+		20.0f,
+		true,
+		0.f
+	);
+
+	GetWorldTimerManager().SetTimer(
+		TurnOverTimer,
+		this,
+		&ABaseballGameState::RequestDeactivateAllSubmitButton,
+		20.0f,
+		true,
+		15.0f
+	);
+}
+
 void ABaseballGameState::Multicast_ReceiveMessage_Implementation(APlayerState* SenderState, const FString& Message)
 {
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; It++)
@@ -74,5 +112,49 @@ void ABaseballGameState::Multicast_GameStart_Implementation()
 	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
 	{
 		BaseballPlayerController->OpenChatWidget();
+	}
+}
+
+void ABaseballGameState::RequestActivateAllSubmitButton()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 활성화"));
+	Multicast_BeTimeToSubmit();
+}
+
+void ABaseballGameState::RequestDeactivateAllSubmitButton()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 비활성화"));
+	Multicast_OverTurnToSubmit();
+}
+
+void ABaseballGameState::RequestDeactivateSubmitButton()
+{
+	Client_DeactiveSubmitButton();
+}
+
+void ABaseballGameState::Multicast_BeTimeToSubmit_Implementation()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
+	{
+		BaseballPlayerController->ActivSubmitButton();
+	}
+}
+
+void ABaseballGameState::Multicast_OverTurnToSubmit_Implementation()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
+	{
+		BaseballPlayerController->DeactivSubmitButton();
+	}
+}
+
+void ABaseballGameState::Client_DeactiveSubmitButton_Implementation()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
+	{
+		BaseballPlayerController->DeactivSubmitButton();
 	}
 }

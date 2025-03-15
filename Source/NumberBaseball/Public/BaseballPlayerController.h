@@ -47,6 +47,8 @@ public:
 	void AddMyChatWidget(const FString& Message);
 	void AddOtherChatWidget(const FString& Message);
 	void AddResultWidget(const FString Result);
+	void DeactivSubmitButton();
+	void ActivSubmitButton();
 
 	UFUNCTION(BlueprintPure)
 	bool GetbIsReady();

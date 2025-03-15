@@ -5,8 +5,6 @@
 #include "BaseballPlayerController.h"
 #include "ChatWindowWidget.generated.h"
 
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSendMessage, const FString&, Message);
-
 UCLASS()
 class NUMBERBASEBALL_API UChatWindowWidget : public UUserWidget
 {
@@ -14,8 +12,6 @@ class NUMBERBASEBALL_API UChatWindowWidget : public UUserWidget
 	
 /*----------PROPERTY----------*/
 public:
-	/*UPROPERTY(BlueprintAssignable)
-	FOnSendMessage OnSendMessage;*/
 
 /*----------FUNCTION----------*/
 public:

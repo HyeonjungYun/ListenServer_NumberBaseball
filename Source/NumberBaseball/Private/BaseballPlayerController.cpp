@@ -146,6 +146,30 @@ void ABaseballPlayerController::AddResultWidget(const FString Result)
 	}
 }
 
+void ABaseballPlayerController::DeactivSubmitButton()
+{
+	if (ChatWindowWidgetInstance)
+	{
+		ChatWindowWidgetInstance->DeactivateSubmittionButton();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeactivSubmitButton] 위젯 인스턴스 설정 안 됨"));
+	}
+}
+
+void ABaseballPlayerController::ActivSubmitButton()
+{
+	if (ChatWindowWidgetInstance)
+	{
+		ChatWindowWidgetInstance->ActivateSubmittionButton();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ActivSubmitButton] 위젯 인스턴스 설정 안 됨"));
+	}
+}
+
 bool ABaseballPlayerController::GetbIsReady()
 {
 	return bIsReady;
@@ -266,5 +290,6 @@ void ABaseballPlayerController::Server_CheckReady_Implementation()
 	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
 	{
 		BaseballGameState->Multicast_GameStart();
+		BaseballGameState->InitGame();
 	}
 }

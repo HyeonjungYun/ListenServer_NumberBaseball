@@ -14,6 +14,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Widget")
 	TSubclassOf<UUserWidget> ChatWidget;
 
+	UPROPERTY()
+	FTimerHandle GameStartTimer;
+
+	UPROPERTY()
+	FTimerHandle GamePlayingTimer;
+
+	UPROPERTY()
+	FTimerHandle SubmittionTurnTimer;
+
+	UPROPERTY()
+	FTimerHandle TurnOverTimer;
+
 /*----------FUNCTION----------*/
 private:
 	ABaseballGameState();
@@ -22,6 +34,10 @@ private:
 
 public:
 	FString SetRandomNumber();
+	void GameStart();
+
+	UFUNCTION(BlueprintCallable)
+	void InitGame();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_ReceiveMessage(APlayerState* SenderState, const FString& Message);
@@ -31,4 +47,22 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_GameStart();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_BeTimeToSubmit();
+
+	UFUNCTION(BlueprintCallable)
+	void RequestActivateAllSubmitButton();
+
+	UFUNCTION(BlueprintCallable)
+	void RequestDeactivateAllSubmitButton();
+
+	UFUNCTION(BlueprintCallable)
+	void RequestDeactivateSubmitButton();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OverTurnToSubmit();
+
+	UFUNCTION(Client, Reliable)
+	void Client_DeactiveSubmitButton();
 };
