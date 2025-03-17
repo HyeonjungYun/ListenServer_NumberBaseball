@@ -3,7 +3,6 @@
 #include "BaseballGameMode.h"
 #include "BaseballGameState.h"
 #include "NotifyWidget.h"
-#include "SessionWidget.h"
 
 #include "Misc/DefaultValueHelper.h"
 #include "Net/UnrealNetwork.h"
@@ -22,11 +21,6 @@ bool ABaseballPlayerController::GetbIsReady()
 	return bIsReady;
 }
 
-void ABaseballPlayerController::SetUserUnique(const FString& Unique)
-{
-	UserUnique = Unique;
-}
-
 #pragma endregion 생성자, 퓨어 함수
 
 #pragma region virtual함수
@@ -35,7 +29,7 @@ void ABaseballPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	/*if (HasAuthority())
+	if (HasAuthority())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BeginPlay] 서버를 가진 클라이언트 실행"));
 		OpenOpeningServerWidget();
@@ -44,10 +38,7 @@ void ABaseballPlayerController::BeginPlay()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BeginPlay] 일반 클라이언트 실행"));
 		OpenOpeningClientWidget();
-	}*/
-
-	//OpenSessionWidget();
-	OpenLoginWidget();
+	}
 }
 
 void ABaseballPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -214,45 +205,6 @@ void ABaseballPlayerController::OpenChatWidget()
 		if (NotifyWidgetInstance)
 		{
 			NotifyWidgetInstance->AddToViewport();
-		}
-	}
-}
-
-void ABaseballPlayerController::OpenSessionWidget()
-{
-	if (IsLocalController())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[OpenSessionWidget] 세션 위젯 실행"));
-		SessionWidgetInstance = Cast<USessionWidget>(CreateWidget<UUserWidget>(this, SessionWidget));
-
-		if (SessionWidgetInstance)
-		{
-			SessionWidgetInstance->AddToViewport();
-
-			this->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(SessionWidgetInstance->TakeWidget());
-			this->SetInputMode(InputMode);
-		}
-	}
-}
-
-void ABaseballPlayerController::OpenLoginWidget()
-{
-	if (IsLocalController())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[OpenOpeningClientWidget] 일반 클라이언트 실행"));
-		LoginWidgetInstance = CreateWidget<UUserWidget>(this, LoginWidget);
-
-		if (LoginWidgetInstance)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[OpenOpeningServerWidget] 클라이언트 인스턴스 실행"));
-			LoginWidgetInstance->AddToViewport();
-
-			this->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(LoginWidgetInstance->TakeWidget());
-			this->SetInputMode(InputMode);
 		}
 	}
 }
