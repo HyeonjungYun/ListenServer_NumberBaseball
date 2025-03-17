@@ -22,7 +22,10 @@ public:
 	void ReceiveOtherMessage(const FString& Message);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void ReceiveResultMessage(const FString& Result);
+	void ReceiveMyResultMessage(const FString& Result);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void ReceiveOtherResultMessage(const FString& Result);
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void DeactivateSubmittionButton();

@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "BaseballPlayerController.generated.h"
 
 class UChatWindowWidget;
+class UNotifyWidget;
 
 UCLASS()
 class NUMBERBASEBALL_API ABaseballPlayerController : public APlayerController
@@ -13,9 +14,7 @@ class NUMBERBASEBALL_API ABaseballPlayerController : public APlayerController
 	
 /*----------PROPERTY----------*/
 public:
-	UPROPERTY(VisibleAnywhere, Category = "RandNumber")
-	FString RandNumber;
-
+#pragma region 위젯 관련 변수
 	UPROPERTY(EditAnywhere, Category = "Widget")
 	TSubclassOf<UUserWidget> ChatWindowWidget;
 
@@ -34,27 +33,47 @@ public:
 	UPROPERTY()
 	UUserWidget* OpeningClientWidgetInstance;
 
+	UPROPERTY(EditAnywhere, Category = "Widget")
+	TSubclassOf<UUserWidget> NotifyWidget;
+
+	UPROPERTY()
+	UNotifyWidget* NotifyWidgetInstance;
+#pragma endregion 위젯 관련 변수
+#pragma region Replicated 변수
 	UPROPERTY(Replicated)
 	bool bIsReady;
 
+	UPROPERTY(Replicated)
+	bool bIsVictory;
+
+	UPROPERTY(Replicated)
+	FString TempResult;
+#pragma endregion Replicated 변수
+
 /*----------FUNCTION----------*/
 public:
+#pragma region 생성자, 퓨어 함수
 	ABaseballPlayerController();
-
-	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	void AddMyChatWidget(const FString& Message);
-	void AddOtherChatWidget(const FString& Message);
-	void AddResultWidget(const FString Result);
-	void DeactivSubmitButton();
-	void ActivSubmitButton();
 
 	UFUNCTION(BlueprintPure)
 	bool GetbIsReady();
+#pragma endregion 생성자, 퓨어 함수
 
-	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void Server_SetIsReady();
+#pragma region virtual함수
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+#pragma endregion virtual함수
+
+#pragma region 버튼 제어 함수
+	void DeactiveSubmitButton();
+	void ActiveSubmitButton();
+#pragma endregion 버튼 제어 함수
+
+#pragma region 위젯 관련 함수
+	void AddMyChatWidget(const FString& Message);
+	void AddOtherChatWidget(const FString& Message);
+	void AddMyResultWidget(const FString& Result);
+	void AddOtherResultWidget(const FString& Result);
 
 	UFUNCTION(BlueprintCallable)
 	void OpenOpeningServerWidget();
@@ -64,15 +83,11 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void OpenChatWidget();
+#pragma endregion 위젯 관련 함수
 
+#pragma region 리퀘스트, 숫자 판별 함수
 	UFUNCTION(Blueprintcallable)
 	void CheckSubmittedNumber(const FString& SubmittedNumber);
-
-	UFUNCTION(Server, Reliable)
-	void Server_RequestReceiveResult(const FString& Result);
-
-	UFUNCTION(Blueprintpure, Category = "Number")
-	FString GetRandomNumber();
 
 	UFUNCTION(BlueprintCallable, Category = "RequestChat")
 	void RequestSendMessage(const FString& Message);
@@ -80,9 +95,39 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ready")
 	void RequestReadyCheck();
 
+	UFUNCTION()
+	void RequestNotifyTurnStart();
+
+	UFUNCTION()
+	void RequestNotifyTurnOver();
+
+	UFUNCTION()
+	void RequestNotifyVictory();
+
+	UFUNCTION()
+	void RequestNotifyDefeat();
+
+	UFUNCTION()
+	void RequestNotifyDraw();
+#pragma endregion 리퀘스트, 숫자 판별 함수
+
+#pragma region 서버RPC함수
 	UFUNCTION(Server, Reliable)
 	void Server_SendChatMessage(APlayerState* SenderState, const FString& Message);
 
 	UFUNCTION(Server, Reliable)
 	void Server_CheckReady();
+
+	UFUNCTION(Server, Reliable)
+	void Server_MatchVictory();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_SetResult(const FString& Result);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_SetIsReady();
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestReceiveResult();
+#pragma endregion 서버RPC함수
 };

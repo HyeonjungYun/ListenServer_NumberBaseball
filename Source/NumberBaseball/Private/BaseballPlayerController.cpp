@@ -2,25 +2,32 @@
 #include "ChatWindowWidget.h"
 #include "BaseballGameMode.h"
 #include "BaseballGameState.h"
+#include "NotifyWidget.h"
 
 #include "Misc/DefaultValueHelper.h"
 #include "Net/UnrealNetwork.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
+#pragma region 생성자, 퓨어 함수
+
 ABaseballPlayerController::ABaseballPlayerController() 
 	: bIsReady(false)
 {
 }
 
+bool ABaseballPlayerController::GetbIsReady()
+{
+	return bIsReady;
+}
+
+#pragma endregion 생성자, 퓨어 함수
+
+#pragma region virtual함수
+
 void ABaseballPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (ABaseballGameState* BaseballGameState = Cast<ABaseballGameState>(UGameplayStatics::GetGameState(this)))
-	{
-		RandNumber = BaseballGameState->SetRandomNumber();
-	}
 
 	if (HasAuthority())
 	{
@@ -39,6 +46,87 @@ void ABaseballPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseballPlayerController, bIsReady);
+	DOREPLIFETIME(ABaseballPlayerController, bIsVictory);
+	DOREPLIFETIME(ABaseballPlayerController, TempResult);
+}
+
+#pragma endregion virtual함수
+
+#pragma region 버튼 제어 함수
+
+void ABaseballPlayerController::DeactiveSubmitButton()
+{
+	if (ChatWindowWidgetInstance)
+	{
+		ChatWindowWidgetInstance->DeactivateSubmittionButton();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DeactivSubmitButton] 위젯 인스턴스 설정 안 됨"));
+	}
+}
+
+void ABaseballPlayerController::ActiveSubmitButton()
+{
+	if (ChatWindowWidgetInstance)
+	{
+		ChatWindowWidgetInstance->ActivateSubmittionButton();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ActivSubmitButton] 위젯 인스턴스 설정 안 됨"));
+	}
+}
+
+#pragma endregion 버튼 제어 함수
+
+#pragma region 위젯 관련 함수
+
+void ABaseballPlayerController::AddMyChatWidget(const FString& Message)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[AddMyChatWidget] 메시지: %s"), *Message);
+
+	if (IsValid(ChatWindowWidgetInstance))
+	{
+		// 다른 사람이 보낸 메세지
+		ChatWindowWidgetInstance->ReceiveMyMessage(Message);
+	}
+}
+
+void ABaseballPlayerController::AddOtherChatWidget(const FString& Message)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[AddOtherChatWidget] 메시지: %s"), *Message);
+
+	if (IsValid(ChatWindowWidgetInstance))
+	{
+		// 다른 사람이 보낸 메세지
+		ChatWindowWidgetInstance->ReceiveOtherMessage(Message);
+	}
+}
+
+void ABaseballPlayerController::AddMyResultWidget(const FString& Result)
+{
+	if (IsValid(ChatWindowWidgetInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AddMyResultWidget] 메시지: %s"), *Result);
+		// 게임 스테이트에서 보낸 결과 메세지
+		ChatWindowWidgetInstance->ReceiveMyResultMessage(Result);
+	}
+}
+
+void ABaseballPlayerController::AddOtherResultWidget(const FString& Result)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[AddOtherResultWidget] 결과 출력 준비"));
+	if (IsValid(ChatWindowWidgetInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AddOtherResultWidget] 메시지: %s"), *Result);
+		// 게임 스테이트에서 보낸 결과 메세지
+		ChatWindowWidgetInstance->ReceiveOtherResultMessage(Result);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AddOtherResultWidget] 결과 출력 실패"));
+	}
 }
 
 void ABaseballPlayerController::OpenOpeningServerWidget()
@@ -111,130 +199,66 @@ void ABaseballPlayerController::OpenChatWidget()
 			InputMode.SetWidgetToFocus(ChatWindowWidgetInstance->TakeWidget());
 			this->SetInputMode(InputMode);
 		}
+
+		NotifyWidgetInstance = Cast<UNotifyWidget>(CreateWidget<UUserWidget>(this, NotifyWidget));
+
+		if (NotifyWidgetInstance)
+		{
+			NotifyWidgetInstance->AddToViewport();
+		}
 	}
 }
 
-void ABaseballPlayerController::AddMyChatWidget(const FString& Message)
-{
-	UE_LOG(LogTemp, Warning, TEXT("[AddMyChatWidget] 메시지: %s"), *Message);
+#pragma endregion 위젯 관련 함수
 
-	if (IsValid(ChatWindowWidgetInstance))
-	{
-		// 다른 사람이 보낸 메세지
-		ChatWindowWidgetInstance->ReceiveMyMessage(Message);
-	}
-}
-
-void ABaseballPlayerController::AddOtherChatWidget(const FString& Message)
-{
-	UE_LOG(LogTemp, Warning, TEXT("[AddOtherChatWidget] 메시지: %s"), *Message);
-
-	if (IsValid(ChatWindowWidgetInstance))
-	{
-		// 다른 사람이 보낸 메세지
-		ChatWindowWidgetInstance->ReceiveOtherMessage(Message);
-	}
-}
-
-void ABaseballPlayerController::AddResultWidget(const FString Result)
-{
-	UE_LOG(LogTemp, Warning, TEXT("[AddResultWidget] 메시지: %s"), *Result);
-	if (IsValid(ChatWindowWidgetInstance))
-	{
-		// 게임 스테이트에서 보낸 결과 메세지
-		ChatWindowWidgetInstance->ReceiveResultMessage(Result);
-	}
-}
-
-void ABaseballPlayerController::DeactivSubmitButton()
-{
-	if (ChatWindowWidgetInstance)
-	{
-		ChatWindowWidgetInstance->DeactivateSubmittionButton();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[DeactivSubmitButton] 위젯 인스턴스 설정 안 됨"));
-	}
-}
-
-void ABaseballPlayerController::ActivSubmitButton()
-{
-	if (ChatWindowWidgetInstance)
-	{
-		ChatWindowWidgetInstance->ActivateSubmittionButton();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ActivSubmitButton] 위젯 인스턴스 설정 안 됨"));
-	}
-}
-
-bool ABaseballPlayerController::GetbIsReady()
-{
-	return bIsReady;
-}
-
-void ABaseballPlayerController::Server_SetIsReady_Implementation()
-{
-	if (bIsReady)
-	{
-		bIsReady = false;
-	}
-	else
-	{
-		bIsReady = true;
-	}
-}
-
-FString ABaseballPlayerController::GetRandomNumber()
-{
-	UE_LOG(LogTemp, Warning, TEXT("[GetRandomNumber] 정답: %d%d%d"), RandNumber[0], RandNumber[1], RandNumber[2]);
-	return RandNumber;
-}
+#pragma region 리퀘스트, 숫자 판별 함수
 
 void ABaseballPlayerController::CheckSubmittedNumber(const FString& SubmittedNumber)
 {
 	TArray<int32> ResultNumber = { 0, 0 };
 
-	UE_LOG(LogTemp, Warning, TEXT("[CheckSubmittedNumber] 제출한 숫자 : %s"), *SubmittedNumber);
-	for (int i = 0; i < RandNumber.Len(); i++)
-	{
-		if (RandNumber[i] == SubmittedNumber[i])
-		{
-			ResultNumber[0]++;
-		}
-	}
-
-	for (int i = 0; i < SubmittedNumber.Len(); i++)
-	{
-		for (int j = 0; j < RandNumber.Len(); j++)
-		{
-			if (i == j)
-			{
-				continue;
-			}
-
-			if (RandNumber[j] == SubmittedNumber[i])
-			{
-				ResultNumber[1]++;
-			}
-		}
-	}
-
-	FString Result = FString::Printf(TEXT("%s -> %dS%dB"), 
-		*SubmittedNumber, 
-		ResultNumber[0],
-		ResultNumber[1]);
-
-	Server_RequestReceiveResult(Result);
-}
-
-void ABaseballPlayerController::Server_RequestReceiveResult_Implementation(const FString& Result)
-{
 	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
 	{
-		BaseballGameState->Multicast_ReceiveCheckResult(Result);
+		FString RandNumber = BaseballGameState->GetRandomNumber();
+
+		UE_LOG(LogTemp, Warning, TEXT("[CheckSubmittedNumber] 제출한 숫자 : %s"), *SubmittedNumber);
+		for (int i = 0; i < RandNumber.Len(); i++)
+		{
+			if (RandNumber[i] == SubmittedNumber[i])
+			{
+				ResultNumber[0]++;
+			}
+		}
+
+		for (int i = 0; i < SubmittedNumber.Len(); i++)
+		{
+			for (int j = 0; j < RandNumber.Len(); j++)
+			{
+				if (i == j)
+				{
+					continue;
+				}
+
+				if (RandNumber[j] == SubmittedNumber[i])
+				{
+					ResultNumber[1]++;
+				}
+			}
+		}
+
+		if (ResultNumber[0] >= 3)
+		{
+			bIsVictory = true;
+			Server_MatchVictory();
+		}
+
+		FString Result = FString::Printf(TEXT("%s -> %dS%dB"),
+			*SubmittedNumber,
+			ResultNumber[0],
+			ResultNumber[1]);
+
+		//Server_RequestReceiveResult(Result);
+		Server_SetResult(Result);
 	}
 }
 
@@ -254,6 +278,76 @@ void ABaseballPlayerController::RequestReadyCheck()
 		{
 			Server_CheckReady();
 		}
+	}
+}
+
+void ABaseballPlayerController::RequestNotifyTurnStart()
+{
+	if (NotifyWidgetInstance)
+	{
+		NotifyWidgetInstance->NotifyTurnStart();
+	}
+}
+
+void ABaseballPlayerController::RequestNotifyTurnOver()
+{
+	if (NotifyWidgetInstance)
+	{
+		NotifyWidgetInstance->NotifyTurnOver();
+	}
+}
+
+void ABaseballPlayerController::RequestNotifyVictory()
+{
+	if (NotifyWidgetInstance)
+	{
+		NotifyWidgetInstance->NotifyVictory();
+	}
+}
+
+void ABaseballPlayerController::RequestNotifyDefeat()
+{
+	if (NotifyWidgetInstance)
+	{
+		NotifyWidgetInstance->NotifyDefeat();
+	}
+}
+
+void ABaseballPlayerController::RequestNotifyDraw()
+{
+	if (NotifyWidgetInstance)
+	{
+		NotifyWidgetInstance->NotifyDraw();
+	}
+}
+
+#pragma endregion 리퀘스트, 숫자 판별 함수
+
+#pragma region 서버RPC함수
+
+void ABaseballPlayerController::Server_SetResult_Implementation(const FString& Result)
+{
+	TempResult = Result;
+}
+
+void ABaseballPlayerController::Server_SetIsReady_Implementation()
+{
+	if (bIsReady)
+	{
+		bIsReady = false;
+	}
+	else
+	{
+		bIsReady = true;
+	}
+}
+
+void ABaseballPlayerController::Server_RequestReceiveResult_Implementation()
+{
+	FString Result = TempResult;
+	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
+	{
+		BaseballGameState->Multicast_ReceiveCheckResult(this->PlayerState, Result);
 	}
 }
 
@@ -293,3 +387,13 @@ void ABaseballPlayerController::Server_CheckReady_Implementation()
 		BaseballGameState->InitGame();
 	}
 }
+
+void ABaseballPlayerController::Server_MatchVictory_Implementation()
+{
+	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
+	{
+		BaseballGameState->CountVictoryUsers();
+	}
+}
+
+#pragma endregion 서버RPC함수
