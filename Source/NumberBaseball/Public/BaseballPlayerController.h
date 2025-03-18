@@ -6,6 +6,7 @@
 
 class UChatWindowWidget;
 class UNotifyWidget;
+class USessionWidget;
 
 UCLASS()
 class NUMBERBASEBALL_API ABaseballPlayerController : public APlayerController
@@ -34,10 +35,26 @@ public:
 	UUserWidget* OpeningClientWidgetInstance;
 
 	UPROPERTY(EditAnywhere, Category = "Widget")
+	TSubclassOf<UUserWidget> LoginWidget;
+
+	UPROPERTY()
+	UUserWidget* LoginWidgetInstance;
+
+	UPROPERTY(EditAnywhere, Category = "Widget")
 	TSubclassOf<UUserWidget> NotifyWidget;
 
 	UPROPERTY()
 	UNotifyWidget* NotifyWidgetInstance;
+
+	UPROPERTY(EditAnywhere, Category = "Widget")
+	TSubclassOf<UUserWidget> SessionWidget;
+
+	UPROPERTY()
+	USessionWidget* SessionWidgetInstance;
+
+	UPROPERTY()
+	FString UserUnique;
+
 #pragma endregion 위젯 관련 변수
 #pragma region Replicated 변수
 	UPROPERTY(Replicated)
@@ -52,12 +69,16 @@ public:
 
 /*----------FUNCTION----------*/
 public:
-#pragma region 생성자, 퓨어 함수
+#pragma region 생성자, getter, setter 함수
 	ABaseballPlayerController();
 
 	UFUNCTION(BlueprintPure)
 	bool GetbIsReady();
-#pragma endregion 생성자, 퓨어 함수
+
+	UFUNCTION(BlueprintCallable)
+	void SetUserUnique(const FString& Unique);
+
+#pragma endregion 생성자, getter, setter 함수
 
 #pragma region virtual함수
 	virtual void BeginPlay() override;
@@ -83,6 +104,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void OpenChatWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenSessionWidget();
+
+	UFUNCTION(BlueprintCallable)
+	void OpenLoginWidget();
 #pragma endregion 위젯 관련 함수
 
 #pragma region 리퀘스트, 숫자 판별 함수
