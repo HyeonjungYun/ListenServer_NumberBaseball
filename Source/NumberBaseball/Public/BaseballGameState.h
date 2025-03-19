@@ -4,6 +4,11 @@
 #include "GameFramework/GameState.h"
 #include "BaseballGameState.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+	FOnEnterPlayer, 
+	FString, PlayerName,
+	bool, bIsHost);
+
 UCLASS()
 class NUMBERBASEBALL_API ABaseballGameState : public AGameState
 {
@@ -13,6 +18,9 @@ class NUMBERBASEBALL_API ABaseballGameState : public AGameState
 public:
 	// 승부 판별 변수
 	int VictoryUsers;
+
+	UPROPERTY(EditAnywhere, BlueprintAssignable)
+	FOnEnterPlayer OnEnterPlayer;
 
 #pragma region 타이머 핸들 변수
 
@@ -33,6 +41,9 @@ public:
 	// 정답
 	UPROPERTY(VisibleAnywhere, Category = "TargetNumber")
 	FString RandNumber;
+
+	UPROPERTY(VisibleAnywhere, Category = "PlayerList")
+	TMap<FString, bool> PlayerList;
 
 /*----------FUNCTION----------*/
 private:
@@ -58,6 +69,18 @@ public:
 
 	UFUNCTION()
 	void NotifyMatchResult();
+
+	UFUNCTION(BlueprintCallable)
+	void CleanGameStateInf();
+
+	UFUNCTION(BlueprintPure)
+	TMap<FString, bool> GetPlayerList() const;
+
+	UFUNCTION(BlueprintCallable)
+	void AddPlayerToPlayerList(FString PlayerName, bool bIsHost);
+
+	UFUNCTION(BlueprintCallable)
+	void RemoveAllPlayerList();
 
 #pragma region 리퀘스트 함수
 
@@ -116,6 +139,12 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_RequestSendResult();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SetbIsSubmittedAllFalse();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AddPlayerToPlayerList(const FString& PlayerName, bool bIsHost);
 
 #pragma endregion 멀티캐스트 함수
 };

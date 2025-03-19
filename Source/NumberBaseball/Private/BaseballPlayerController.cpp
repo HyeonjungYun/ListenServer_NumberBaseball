@@ -13,6 +13,12 @@
 
 ABaseballPlayerController::ABaseballPlayerController() 
 	: bIsReady(false)
+	, bIsSubmitted(false)
+	, ChatWindowWidgetInstance(nullptr)
+	, OpeningServerWidgetInstance(nullptr)
+	, OpeningClientWidgetInstance(nullptr)
+	, NotifyWidgetInstance(nullptr)
+	, FinishWidgetInstance(nullptr)
 {
 }
 
@@ -21,14 +27,18 @@ bool ABaseballPlayerController::GetbIsReady()
 	return bIsReady;
 }
 
-#pragma endregion 생성자, 퓨어 함수
-
-#pragma region virtual함수
-
-void ABaseballPlayerController::BeginPlay()
+bool ABaseballPlayerController::GetIsVictory()
 {
-	Super::BeginPlay();
+	return bIsVictory;
+}
 
+bool ABaseballPlayerController::GetIsDraw()
+{
+	return bIsDraw;
+}
+
+void ABaseballPlayerController::StartGame()
+{
 	if (HasAuthority())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BeginPlay] 서버를 가진 클라이언트 실행"));
@@ -41,13 +51,40 @@ void ABaseballPlayerController::BeginPlay()
 	}
 }
 
+void ABaseballPlayerController::CleanControllerInf()
+{
+	ChatWindowWidgetInstance = nullptr;
+	OpeningServerWidgetInstance = nullptr;
+	OpeningClientWidgetInstance = nullptr;
+	NotifyWidgetInstance = nullptr;
+	FinishWidgetInstance = nullptr;
+
+	Server_SetIsReady();
+	bIsVictory = false;
+	Server_SetResult(TEXT(""));
+	Server_SetIsSubmitted(false);
+}
+
+#pragma endregion 생성자, 퓨어 함수
+
+#pragma region virtual함수
+
+void ABaseballPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	StartGame();
+
+	OpenLoginWidget();
+}
+
 void ABaseballPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseballPlayerController, bIsReady);
-	DOREPLIFETIME(ABaseballPlayerController, bIsVictory);
 	DOREPLIFETIME(ABaseballPlayerController, TempResult);
+	DOREPLIFETIME(ABaseballPlayerController, bIsSubmitted);
 }
 
 #pragma endregion virtual함수
@@ -129,6 +166,25 @@ void ABaseballPlayerController::AddOtherResultWidget(const FString& Result)
 	}
 }
 
+void ABaseballPlayerController::OpenLoginWidget()
+{
+	if (IsLocalController())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[OpenChatWidget] 게임 위젯 오픈"));
+		LoginWidgetInstance = CreateWidget<UUserWidget>(this, LoginWidget);
+
+		if (LoginWidgetInstance)
+		{
+			LoginWidgetInstance->AddToViewport();
+
+			this->bShowMouseCursor = true;
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(LoginWidgetInstance->TakeWidget());
+			this->SetInputMode(InputMode);
+		}
+	}
+}
+
 void ABaseballPlayerController::OpenOpeningServerWidget()
 {
 	if (IsLocalController())
@@ -146,6 +202,26 @@ void ABaseballPlayerController::OpenOpeningServerWidget()
 			this->bShowMouseCursor = true;
 			FInputModeUIOnly InputMode;
 			InputMode.SetWidgetToFocus(OpeningServerWidgetInstance->TakeWidget());
+			this->SetInputMode(InputMode);
+		}
+	}
+}
+
+void ABaseballPlayerController::OpenFinishWidget()
+{
+	if (IsLocalController())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[OpenOpeningClientWidget] 일반 클라이언트 실행"));
+		FinishWidgetInstance = CreateWidget<UUserWidget>(this, FinishWidget);
+
+		if (FinishWidgetInstance)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[OpenOpeningServerWidget] 클라이언트 인스턴스 실행"));
+			FinishWidgetInstance->AddToViewport();
+
+			this->bShowMouseCursor = true;
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(FinishWidgetInstance->TakeWidget());
 			this->SetInputMode(InputMode);
 		}
 	}
@@ -257,7 +333,6 @@ void ABaseballPlayerController::CheckSubmittedNumber(const FString& SubmittedNum
 			ResultNumber[0],
 			ResultNumber[1]);
 
-		//Server_RequestReceiveResult(Result);
 		Server_SetResult(Result);
 	}
 }
@@ -303,6 +378,9 @@ void ABaseballPlayerController::RequestNotifyVictory()
 	{
 		NotifyWidgetInstance->NotifyVictory();
 	}
+	bIsVictory = true;
+
+	OpenFinishWidget();
 }
 
 void ABaseballPlayerController::RequestNotifyDefeat()
@@ -311,6 +389,9 @@ void ABaseballPlayerController::RequestNotifyDefeat()
 	{
 		NotifyWidgetInstance->NotifyDefeat();
 	}
+	bIsVictory = false;
+
+	OpenFinishWidget();
 }
 
 void ABaseballPlayerController::RequestNotifyDraw()
@@ -319,6 +400,9 @@ void ABaseballPlayerController::RequestNotifyDraw()
 	{
 		NotifyWidgetInstance->NotifyDraw();
 	}
+	bIsDraw = true;
+
+	OpenFinishWidget();
 }
 
 #pragma endregion 리퀘스트, 숫자 판별 함수
@@ -344,7 +428,16 @@ void ABaseballPlayerController::Server_SetIsReady_Implementation()
 
 void ABaseballPlayerController::Server_RequestReceiveResult_Implementation()
 {
-	FString Result = TempResult;
+	FString Result;
+	if (bIsSubmitted)
+	{
+		Result = TempResult;
+	}
+	else
+	{
+		Result = TEXT("미제출");
+	}
+
 	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
 	{
 		BaseballGameState->Multicast_ReceiveCheckResult(this->PlayerState, Result);
@@ -394,6 +487,19 @@ void ABaseballPlayerController::Server_MatchVictory_Implementation()
 	{
 		BaseballGameState->CountVictoryUsers();
 	}
+}
+
+void ABaseballPlayerController::Server_SetIsSubmitted_Implementation(bool IsSubmitted)
+{
+	if (IsSubmitted)
+	{
+		bIsSubmitted = true;
+	}
+	else
+	{
+		bIsSubmitted = false;
+	}
+
 }
 
 #pragma endregion 서버RPC함수

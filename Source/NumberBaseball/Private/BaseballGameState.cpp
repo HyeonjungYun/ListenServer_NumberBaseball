@@ -56,8 +56,8 @@ FString ABaseballGameState::GetRandomNumber()
 
 void ABaseballGameState::NotifyMatchResult()
 {
-	RequestDeactivateAllSubmitButton();
 	Multicast_RequestSendResult();
+	RequestDeactivateAllSubmitButton();
 
 	if (!VictoryUsers)
 	{
@@ -73,6 +73,34 @@ void ABaseballGameState::NotifyMatchResult()
 		Multicast_CheckMatchResult();
 	}
 
+}
+
+void ABaseballGameState::CleanGameStateInf()
+{
+	GetWorldTimerManager().ClearTimer(GameStartTimer);
+	GetWorldTimerManager().ClearTimer(GamePlayingTimer);
+	GetWorldTimerManager().ClearTimer(SubmittionTurnTimer);
+	GetWorldTimerManager().ClearTimer(TurnOverTimer);
+
+	VictoryUsers = 0;
+	RandNumber = SetRandomNumber();
+}
+
+TMap<FString, bool> ABaseballGameState::GetPlayerList() const
+{
+	return PlayerList;
+}
+
+void ABaseballGameState::AddPlayerToPlayerList(FString PlayerName, bool bIsHost)
+{
+	PlayerList.Add(PlayerName, bIsHost);
+
+	Multicast_AddPlayerToPlayerList(PlayerName, bIsHost);
+}
+
+void ABaseballGameState::RemoveAllPlayerList()
+{
+	PlayerList.Empty();
 }
 
 void ABaseballGameState::GameStart()
@@ -114,6 +142,9 @@ void ABaseballGameState::RequestActivateAllSubmitButton()
 
 	// 턴 시작 알림
 	Multicast_NotifyTurnStart();
+
+	// 모든 플레이어 제출 상태 false로 변경
+	Multicast_SetbIsSubmittedAllFalse();
 }
 
 void ABaseballGameState::RequestDeactivateAllSubmitButton()
@@ -228,6 +259,8 @@ void ABaseballGameState::Multicast_GameStart_Implementation()
 	{
 		BaseballPlayerController->OpenChatWidget();
 	}
+
+	RemoveAllPlayerList();
 }
 
 void ABaseballGameState::Multicast_BeTimeToSubmit_Implementation()
@@ -298,6 +331,20 @@ void ABaseballGameState::Multicast_RequestSendResult_Implementation()
 	{
 		BaseballPlayerController->Server_RequestReceiveResult();
 	}
+}
+
+void ABaseballGameState::Multicast_SetbIsSubmittedAllFalse_Implementation()
+{
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
+	{
+		BaseballPlayerController->Server_SetIsSubmitted(false);
+	}
+}
+
+void ABaseballGameState::Multicast_AddPlayerToPlayerList_Implementation(const FString& PlayerName, bool bIsHost)
+{
+	OnEnterPlayer.Broadcast(PlayerName, bIsHost);
 }
 
 #pragma endregion 멀티캐스트 함수
