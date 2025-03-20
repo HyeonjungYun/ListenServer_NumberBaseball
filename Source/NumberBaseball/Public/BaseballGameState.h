@@ -48,7 +48,7 @@ public:
 #pragma endregion 타이머 핸들 변수
 
 	// 정답
-	UPROPERTY(VisibleAnywhere, Category = "TargetNumber")
+	UPROPERTY(VisibleAnywhere, Category = "TargetNumber", Replicated)
 	FString RandNumber;
 
 	UPROPERTY(VisibleAnywhere, Category = "PlayerList")

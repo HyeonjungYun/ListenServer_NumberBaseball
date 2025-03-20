@@ -29,6 +29,7 @@ void ABaseballGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABaseballGameState, RemainedTime);
+	DOREPLIFETIME(ABaseballGameState, RandNumber);
 }
 
 #pragma endregion 생성자, virtual 함수
@@ -121,7 +122,7 @@ void ABaseballGameState::GameStart()
 		SubmittionTurnTimer,
 		this,
 		&ABaseballGameState::RequestActivateAllSubmitButton,
-		30.0f,
+		20.0f,
 		true,
 		0.f
 	);
@@ -130,9 +131,9 @@ void ABaseballGameState::GameStart()
 		TurnOverTimer,
 		this,
 		&ABaseballGameState::NotifyMatchResult,
-		30.0f,
+		20.0f,
 		true,
-		20.0f
+		15.0f
 	);
 }
 
@@ -145,7 +146,7 @@ void ABaseballGameState::CountVictoryUsers()
 
 void ABaseballGameState::RequestActivateAllSubmitButton()
 {
-	RemainedTime = 20;
+	RemainedTime = 15;
 
 	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 활성화"));
 	Multicast_BeTimeToSubmit();
@@ -159,7 +160,7 @@ void ABaseballGameState::RequestActivateAllSubmitButton()
 
 void ABaseballGameState::RequestDeactivateAllSubmitButton()
 {
-	RemainedTime = 10;
+	RemainedTime = 5;
 
 	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 비활성화"));
 	Multicast_OverTurnToSubmit();

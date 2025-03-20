@@ -303,7 +303,7 @@ void ABaseballPlayerController::CheckSubmittedNumber(const FString& SubmittedNum
 	{
 		FString RandNumber = BaseballGameState->GetRandomNumber();
 
-		UE_LOG(LogTemp, Warning, TEXT("[CheckSubmittedNumber] 제출한 숫자 : %s"), *SubmittedNumber);
+		UE_LOG(LogTemp, Warning, TEXT("[CheckSubmittedNumber] 제출한 숫자 : %s, 타겟 숫자 : %s"), *SubmittedNumber, *RandNumber);
 		
 		FString Result = (BaseballGameState->Refree)->CheckNumber(RandNumber, SubmittedNumber, ResultNumber);
 
