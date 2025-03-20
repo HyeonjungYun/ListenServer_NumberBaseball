@@ -16,5 +16,5 @@ public:
 	const FString GetBaseballPlayerName() const;
 
 	UFUNCTION(BlueprintCallable)
-	void SetBaseballPlayerName(const FString& PlayerName);
+	void SetBaseballPlayerName(const FString& PlayerName, bool IsHost);
 };

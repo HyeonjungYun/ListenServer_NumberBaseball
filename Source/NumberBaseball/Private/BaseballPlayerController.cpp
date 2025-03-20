@@ -3,6 +3,7 @@
 #include "BaseballGameMode.h"
 #include "BaseballGameState.h"
 #include "NotifyWidget.h"
+#include "BaseballCalculator.h"
 
 #include "Misc/DefaultValueHelper.h"
 #include "Net/UnrealNetwork.h"
@@ -13,13 +14,18 @@
 
 ABaseballPlayerController::ABaseballPlayerController() 
 	: bIsReady(false)
-	, bIsSubmitted(false)
 	, ChatWindowWidgetInstance(nullptr)
 	, OpeningServerWidgetInstance(nullptr)
 	, OpeningClientWidgetInstance(nullptr)
 	, NotifyWidgetInstance(nullptr)
 	, FinishWidgetInstance(nullptr)
+	, bIsSubmitted(false)
 {
+}
+
+UNotifyWidget* ABaseballPlayerController::GetNotifyWidget()
+{
+	return NotifyWidgetInstance;
 }
 
 bool ABaseballPlayerController::GetbIsReady()
@@ -298,40 +304,14 @@ void ABaseballPlayerController::CheckSubmittedNumber(const FString& SubmittedNum
 		FString RandNumber = BaseballGameState->GetRandomNumber();
 
 		UE_LOG(LogTemp, Warning, TEXT("[CheckSubmittedNumber] 제출한 숫자 : %s"), *SubmittedNumber);
-		for (int i = 0; i < RandNumber.Len(); i++)
-		{
-			if (RandNumber[i] == SubmittedNumber[i])
-			{
-				ResultNumber[0]++;
-			}
-		}
-
-		for (int i = 0; i < SubmittedNumber.Len(); i++)
-		{
-			for (int j = 0; j < RandNumber.Len(); j++)
-			{
-				if (i == j)
-				{
-					continue;
-				}
-
-				if (RandNumber[j] == SubmittedNumber[i])
-				{
-					ResultNumber[1]++;
-				}
-			}
-		}
+		
+		FString Result = (BaseballGameState->Refree)->CheckNumber(RandNumber, SubmittedNumber, ResultNumber);
 
 		if (ResultNumber[0] >= 3)
 		{
 			bIsVictory = true;
 			Server_MatchVictory();
 		}
-
-		FString Result = FString::Printf(TEXT("%s -> %dS%dB"),
-			*SubmittedNumber,
-			ResultNumber[0],
-			ResultNumber[1]);
 
 		Server_SetResult(Result);
 	}
@@ -500,6 +480,14 @@ void ABaseballPlayerController::Server_SetIsSubmitted_Implementation(bool IsSubm
 		bIsSubmitted = false;
 	}
 
+}
+
+void ABaseballPlayerController::Server_RequestAddPlayerList_Implementation(const FString& PlayerName, bool IsHost)
+{
+	if (ABaseballGameState* BaseballGameState = Cast< ABaseballGameState>(GetWorld()->GetGameState()))
+	{
+		BaseballGameState->AddPlayerToPlayerList(PlayerName, IsHost);
+	}
 }
 
 #pragma endregion 서버RPC함수

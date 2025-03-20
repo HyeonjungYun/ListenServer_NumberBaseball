@@ -1,6 +1,11 @@
 ﻿#include "BaseballGameState.h"
 #include "BaseballPlayerController.h"
+#include "NotifyWidget.h"
+#include "BaseballCalculator.h"
 
+#include "Misc/DefaultValueHelper.h"
+#include "Net/UnrealNetwork.h"
+#include "Components/TextBlock.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -8,8 +13,10 @@
 
 ABaseballGameState::ABaseballGameState()
 	: VictoryUsers(0)
+	, RemainedTime(0)
 {
-	RandNumber = SetRandomNumber();
+	Refree = new BaseballCalculator();
+	RandNumber = Refree->SetRandomNumber();
 }
 
 void ABaseballGameState::BeginPlay()
@@ -17,28 +24,28 @@ void ABaseballGameState::BeginPlay()
 	Super::BeginPlay();
 }
 
-#pragma endregion 생성자, virtual 함수
-
-FString ABaseballGameState::SetRandomNumber()
+void ABaseballGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	TArray<int32> NumberPool = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	for (int32 i = 0; i < NumberPool.Num(); ++i)
-	{
-		int32 RandIndex = FMath::RandRange(i, NumberPool.Num() - 1);
-		NumberPool.Swap(i, RandIndex);
-	}
-
-	//FString Number = FString::Printf(TEXT("%d%d%d"), NumberPool[0], NumberPool[1], NumberPool[2]);
-
-	FString Number = TEXT("123");
-
-	return Number;
+	DOREPLIFETIME(ABaseballGameState, RemainedTime);
 }
+
+#pragma endregion 생성자, virtual 함수
 
 void ABaseballGameState::InitGame()
 {
 	Multicast_OverTurnToSubmit();
+
+	RemainedTime = 5;
+
+	GetWorldTimerManager().SetTimer(
+		GameTimer,
+		this,
+		&ABaseballGameState::Multicast_UpdateRemainedTime,
+		1.0f,
+		true
+	);
 
 	GetWorldTimerManager().SetTimer(
 		GameStartTimer,
@@ -77,13 +84,16 @@ void ABaseballGameState::NotifyMatchResult()
 
 void ABaseballGameState::CleanGameStateInf()
 {
+	GetWorldTimerManager().ClearTimer(GameTimer);
 	GetWorldTimerManager().ClearTimer(GameStartTimer);
 	GetWorldTimerManager().ClearTimer(GamePlayingTimer);
 	GetWorldTimerManager().ClearTimer(SubmittionTurnTimer);
 	GetWorldTimerManager().ClearTimer(TurnOverTimer);
 
 	VictoryUsers = 0;
-	RandNumber = SetRandomNumber();
+	RemainedTime = 0;
+
+	RandNumber = Refree->SetRandomNumber();
 }
 
 TMap<FString, bool> ABaseballGameState::GetPlayerList() const
@@ -93,8 +103,6 @@ TMap<FString, bool> ABaseballGameState::GetPlayerList() const
 
 void ABaseballGameState::AddPlayerToPlayerList(FString PlayerName, bool bIsHost)
 {
-	PlayerList.Add(PlayerName, bIsHost);
-
 	Multicast_AddPlayerToPlayerList(PlayerName, bIsHost);
 }
 
@@ -137,6 +145,8 @@ void ABaseballGameState::CountVictoryUsers()
 
 void ABaseballGameState::RequestActivateAllSubmitButton()
 {
+	RemainedTime = 20;
+
 	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 활성화"));
 	Multicast_BeTimeToSubmit();
 
@@ -149,6 +159,8 @@ void ABaseballGameState::RequestActivateAllSubmitButton()
 
 void ABaseballGameState::RequestDeactivateAllSubmitButton()
 {
+	RemainedTime = 10;
+
 	UE_LOG(LogTemp, Warning, TEXT("[RequestDeactivateAllSubmitButton] 제출 버튼 비활성화"));
 	Multicast_OverTurnToSubmit();
 
@@ -259,8 +271,6 @@ void ABaseballGameState::Multicast_GameStart_Implementation()
 	{
 		BaseballPlayerController->OpenChatWidget();
 	}
-
-	RemoveAllPlayerList();
 }
 
 void ABaseballGameState::Multicast_BeTimeToSubmit_Implementation()
@@ -344,7 +354,26 @@ void ABaseballGameState::Multicast_SetbIsSubmittedAllFalse_Implementation()
 
 void ABaseballGameState::Multicast_AddPlayerToPlayerList_Implementation(const FString& PlayerName, bool bIsHost)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Multicast_AddPlayerToPlayerList_Implementation] %s 세션 입장"), *PlayerName);
+	
+	PlayerList.Add(PlayerName, bIsHost);
 	OnEnterPlayer.Broadcast(PlayerName, bIsHost);
+}
+
+void ABaseballGameState::Multicast_UpdateRemainedTime_Implementation()
+{
+	RemainedTime--;
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (ABaseballPlayerController* BaseballPlayerController = Cast<ABaseballPlayerController>(PlayerController))
+	{
+		if (UNotifyWidget* Nortify = BaseballPlayerController->GetNotifyWidget())
+		{
+			if (UTextBlock* TimeText = Cast<UTextBlock>(Nortify->GetWidgetFromName(TEXT("TimeText"))))
+			{
+				TimeText->SetText(FText::FromString(FString::Printf(TEXT("%d"), RemainedTime)));
+			}
+		}
+	}
 }
 
 #pragma endregion 멀티캐스트 함수

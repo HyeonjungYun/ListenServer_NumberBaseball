@@ -79,6 +79,8 @@ public:
 
 	ABaseballPlayerController();
 
+	UNotifyWidget* GetNotifyWidget();
+
 	UFUNCTION(BlueprintPure)
 	bool GetbIsReady();
 
@@ -184,6 +186,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void Server_SetIsSubmitted(bool IsSubmitted);
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestAddPlayerList(const FString& PlayerName, bool IsHost);
 
 #pragma endregion 서버RPC함수
 };

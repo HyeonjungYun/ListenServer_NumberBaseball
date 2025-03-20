@@ -9,6 +9,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 	FString, PlayerName,
 	bool, bIsHost);
 
+class BaseballCalculator;
+
 UCLASS()
 class NUMBERBASEBALL_API ABaseballGameState : public AGameState
 {
@@ -18,11 +20,18 @@ class NUMBERBASEBALL_API ABaseballGameState : public AGameState
 public:
 	// 승부 판별 변수
 	int VictoryUsers;
+	BaseballCalculator* Refree;
+
+	UPROPERTY(Replicated)
+	int RemainedTime;
 
 	UPROPERTY(EditAnywhere, BlueprintAssignable)
 	FOnEnterPlayer OnEnterPlayer;
 
 #pragma region 타이머 핸들 변수
+
+	UPROPERTY()
+	FTimerHandle GameTimer;
 
 	UPROPERTY()
 	FTimerHandle GameStartTimer;
@@ -53,11 +62,11 @@ private:
 	ABaseballGameState();
 
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 #pragma endregion 생성자, virtual 함수
 
 public:
-	FString SetRandomNumber();
 	void GameStart();
 	void CountVictoryUsers();
 
@@ -145,6 +154,9 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_AddPlayerToPlayerList(const FString& PlayerName, bool bIsHost);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateRemainedTime();
 
 #pragma endregion 멀티캐스트 함수
 };
